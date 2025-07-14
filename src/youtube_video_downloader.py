@@ -51,17 +51,11 @@ class YouTubeVideoDownloader:
         self.setup_logging()
     
     def setup_logging(self):
-        """设置日志配置"""
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-        
-        log_file = log_dir / f"youtube_video_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        
+        """设置日志配置，仅输出到流（控制台/GUI）"""
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler(log_file, encoding='utf-8'),
                 logging.StreamHandler()
             ]
         )
