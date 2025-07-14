@@ -7,7 +7,7 @@ __pycache__/
 # Build artifacts
 dist/
 build/
-*.spec
+
 
 # User-specific data
 downloads/
@@ -20,4 +20,3 @@ data/links.txt
 .vscode/
 
 # 忽略其他不必要的文件
-ffmpeg/

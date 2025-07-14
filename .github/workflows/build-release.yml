@@ -48,9 +48,9 @@ jobs:
         Remove-Item ffmpeg.zip
         Remove-Item ffmpeg_temp -Recurse
 
-    # Step 5: Build the executable with PyInstaller, bundling FFmpeg
+    # Step 5: Build the executable using the corrected .spec file
     - name: Build with PyInstaller
-      run: pyinstaller --noconfirm --onefile --windowed --add-data "ffmpeg;ffmpeg" --name "youtube_downloader" gui.py
+      run: pyinstaller --noconfirm youtube_downloader.spec
 
     # Step 6: Package the build artifact into a zip file for easy download
     - name: Package release assets
