@@ -28,8 +28,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
-        # Use Scoop to install ffmpeg
-        scoop install ffmpeg
+        # Use Chocolatey (pre-installed on runners) to install ffmpeg
+        choco install ffmpeg --no-progress --params "/S"
+        # Add ffmpeg to the PATH for the current job
+        echo "C:\ProgramData\chocolatey\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     # Step 4: Build the executable with PyInstaller
     # --windowed: No console window when the user runs it
