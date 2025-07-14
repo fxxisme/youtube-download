@@ -112,6 +112,7 @@ class YouTubeVideoDownloader:
             'writethumbnail': True,
             'writeannotations': False,
             'progress_hooks': self.progress_hooks,
+            'verbose': True,
         }
         
         ffmpeg_location = self.find_ffmpeg()

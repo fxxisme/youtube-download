@@ -13,8 +13,10 @@ try:
     from src.youtube_video_downloader import YouTubeVideoDownloader
 except ImportError:
     current_dir = Path(__file__).parent
-    parent_dir = current_dir.parent
-    sys.path.insert(0, str(parent_dir))
+    # 在打包环境中，我们依赖于 .spec 文件中的 pathex
+    if not getattr(sys, 'frozen', False):
+        parent_dir = current_dir.parent
+        sys.path.insert(0, str(parent_dir))
     from src.youtube_to_mp3 import YouTubeToMP3
     from src.youtube_video_downloader import YouTubeVideoDownloader
 
@@ -26,6 +28,18 @@ QUALITY_MAP = {
     "最高画质": "best", "1080p": "1080p", "720p": "720p",
     "480p": "best[height<=480][ext=mp4]/best[height<=480]", "最低画质": "worst"
 }
+
+class QueueLogger:
+    """一个伪文件类，将所有写入操作重定向到给定的队列。"""
+    def __init__(self, log_queue):
+        self.log_queue = log_queue
+
+    def write(self, text):
+        self.log_queue.put(("log", text))
+
+    def flush(self):
+        # 这个方法是必须的，以满足文件对象的接口
+        pass
 
 class DownloaderApp(ctk.CTk):
     def __init__(self):
@@ -114,7 +128,7 @@ class DownloaderApp(ctk.CTk):
         self.log_text.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
     def import_urls_from_file(self):
-        file_path = filedialog.askopenfilename(title="选择URL文本文件", filetypes=(("Text files", "*.txt"), ("All files", "*.*")))
+        file_path = filedialog.askopenfilename(title="选择URL文本文件", filetypes=(("Text files", "*.txt"), ("All files", "*.* wurden")))
         if not file_path: return
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -129,10 +143,13 @@ class DownloaderApp(ctk.CTk):
         if directory: self.save_path_var.set(directory)
 
     def log_message(self, message):
-        self.log_text.configure(state='normal')
-        self.log_text.insert(ctk.END, message + "\n")
-        self.log_text.see(ctk.END)
-        self.log_text.configure(state='disabled')
+        # 确保消息是字符串，并去掉尾部换行符
+        message = str(message).rstrip()
+        if message:
+            self.log_text.configure(state='normal')
+            self.log_text.insert(ctk.END, message + "\n")
+            self.log_text.see(ctk.END)
+            self.log_text.configure(state='disabled')
 
     def process_log_queue(self):
         try:
@@ -196,6 +213,14 @@ class DownloaderApp(ctk.CTk):
 
     def run_download(self, download_type, urls, save_path, quality, cancel_event):
         final_status = "已完成"
+        
+        # 重定向 stdout 和 stderr
+        queue_logger = QueueLogger(self.log_queue)
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+        sys.stdout = queue_logger
+        sys.stderr = queue_logger
+
         try:
             downloader_class = YouTubeToMP3 if download_type == 'mp3' else YouTubeVideoDownloader
             downloader_params = {
@@ -207,7 +232,8 @@ class DownloaderApp(ctk.CTk):
                 downloader_params['quality'] = quality
             
             downloader = downloader_class(**downloader_params)
-            downloader.print_colored = lambda text, *args, **kwargs: self.log_queue.put(("log", str(text)))
+            # 这个重定向不再需要，因为我们捕获了所有stdout/stderr
+            # downloader.print_colored = lambda text, *args, **kwargs: self.log_queue.put(("log", str(text)))
 
             self.log_queue.put(("status", f"开始批量下载 {len(urls)} 个项目..."))
             downloader.batch_download(urls)
@@ -220,12 +246,18 @@ class DownloaderApp(ctk.CTk):
             final_status = f"错误: {e}"
             self.log_queue.put(("log", f"发生严重错误: {e}"))
         finally:
+            # 恢复原始的 stdout 和 stderr
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
+            
             self.log_queue.put(("status", final_status))
             self.log_queue.put(("ui_state_idle", None))
             self.log_queue.put(("progress", 0.0))
 
     def progress_hook(self, d):
         if self.cancel_event.is_set():
+            # yt-dlp的旧版本可能需要导入这个
+            import yt_dlp
             raise yt_dlp.utils.DownloadError("下载已被用户取消")
 
         if d['status'] == 'downloading':
@@ -240,15 +272,15 @@ class DownloaderApp(ctk.CTk):
                 self.log_queue.put(("status", f"处理中: {d['postprocessor']}..."))
 
 if __name__ == "__main__":
-    if not os.path.exists("./ffmpeg/bin/ffmpeg.exe") and not shutil.which("ffmpeg"):
-        print("警告: 未找到ffmpeg，MP3转换和部分视频下载可能失败。")
+    # 在GUI模式下，这些检查可以被简化或移除，因为ffmpeg由打包处理
+    # if not os.path.exists("./ffmpeg/bin/ffmpeg.exe") and not shutil.which("ffmpeg"):
+    #     print("警告: 未找到ffmpeg，MP3转换和部分视频下载可能失败。")
     
-    # yt-dlp的依赖需要导入，即使没有直接使用
-    try:
-        import yt_dlp
-    except ImportError:
-        print("错误: 找不到 yt-dlp 库。请运行 'pip install yt-dlp' 安装。")
-        sys.exit(1)
+    # try:
+    #     import yt_dlp
+    # except ImportError:
+    #     print("错误: 找不到 yt-dlp 库。请运行 'pip install yt-dlp' 安装。")
+    #     sys.exit(1)
 
     app = DownloaderApp()
     app.mainloop()
