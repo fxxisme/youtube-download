@@ -87,34 +87,37 @@ class YouTubeToMP3:
             self.ydl_opts['ffmpeg_location'] = ffmpeg_path
     
     def find_ffmpeg(self):
-        """查找FFmpeg可执行文件"""
+        """
+        查找FFmpeg可执行文件。
+        优先顺序:
+        1. 如果是打包状态，查找捆绑的FFmpeg。
+        2. 如果是开发环境，查找项目内的ffmpeg目录。
+        3. 查找系统PATH中的ffmpeg。
+        """
         import shutil
+
+        # 检查是否在PyInstaller打包环境中运行
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            # _MEIPASS是PyInstaller在运行时创建的临时文件夹的路径
+            bundle_dir = Path(sys._MEIPASS)
+            ffmpeg_exe = bundle_dir / 'ffmpeg' / 'bin' / 'ffmpeg.exe'
+            if ffmpeg_exe.is_file():
+                # 返回包含ffmpeg.exe的目录路径
+                self.print_colored(f"🔧 使用捆绑的FFmpeg: {ffmpeg_exe}", Fore.BLUE)
+                return str(ffmpeg_exe.parent)
         
-        # 首先检查系统PATH中是否有ffmpeg
+        # 检查本地开发目录
+        local_path = Path("./ffmpeg/bin/ffmpeg.exe")
+        if local_path.is_file():
+            self.print_colored(f"🔧 使用本地开发的FFmpeg: {local_path.resolve()}", Fore.BLUE)
+            return str(local_path.parent.resolve())
+
+        # 检查系统PATH
         if shutil.which('ffmpeg'):
-            return None
-        
-        # 检查常见的安装位置
-        common_paths = [
-            'C:\\ffmpeg\\bin\\ffmpeg.exe',
-            'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
-            'C:\\Program Files (x86)\\ffmpeg\\bin\\ffmpeg.exe',
-            '.\\ffmpeg.exe',
-            '.\\bin\\ffmpeg.exe',
-            '.\\ffmpeg\\bin\\ffmpeg.exe',
-        ]
-        
-        for path in common_paths:
-            if os.path.exists(path):
-                self.print_colored(f"🔧 找到FFmpeg: {path}", Fore.BLUE)
-                return os.path.dirname(path)
-        
-        # 如果都没找到，提示用户
-        self.print_colored("⚠️ 未找到FFmpeg，请确保已正确安装", Fore.YELLOW)
-        self.print_colored("   可以下载FFmpeg并放在以下位置之一：", Fore.YELLOW)
-        for path in common_paths:
-            self.print_colored(f"   - {path}", Fore.YELLOW)
-        
+            self.print_colored("🔧 在系统PATH中找到FFmpeg。", Fore.BLUE)
+            return None  # 返回None，yt-dlp会自动在PATH中找到它
+
+        self.print_colored("⚠️ 未找到FFmpeg，音频转换可能会失败。", Fore.YELLOW)
         return None
     
     def print_colored(self, text, color=Fore.WHITE, style=Style.RESET_ALL):
