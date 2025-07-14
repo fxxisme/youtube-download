@@ -29,24 +29,7 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    # Step 4: Download and set up FFmpeg for PyInstaller
-    - name: Download and set up FFmpeg
-      shell: pwsh
-      run: |
-        # Create the target directory structure that the pyinstaller command expects
-        New-Item -Path "ffmpeg/bin" -ItemType Directory -Force
-        
-        # Download a static FFmpeg build from a reliable source
-        $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-        Invoke-WebRequest -Uri $ffmpegUrl -OutFile ffmpeg.zip
-        
-        # Extract the zip and move ffmpeg.exe to the correct location for bundling
-        Expand-Archive -Path ffmpeg.zip -DestinationPath "ffmpeg_temp"
-        Move-Item -Path "ffmpeg_temp/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe" -Destination "ffmpeg/bin/ffmpeg.exe"
-        
-        # Clean up the downloaded zip and temporary folder
-        Remove-Item ffmpeg.zip
-        Remove-Item ffmpeg_temp -Recurse
+    
 
     # Step 5: Build the executable using the corrected .spec file
     - name: Build with PyInstaller
