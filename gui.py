@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+import psutil # 引入psutil
 
 # 确保src目录在sys.path中
 try:
@@ -38,7 +39,6 @@ class QueueLogger:
         self.log_queue.put(("log", text))
 
     def flush(self):
-        # 这个方法是必须的，以满足文件对象的接口
         pass
 
 class DownloaderApp(ctk.CTk):
@@ -60,6 +60,27 @@ class DownloaderApp(ctk.CTk):
         self.log_queue = queue.Queue()
         self.cancel_event = threading.Event()
         self.after(100, self.process_log_queue)
+
+        # 绑定窗口关闭事件到自定义的清理函数
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        """在关闭窗口时，确保所有子进程都被终止。"""
+        if self.cancel_button.cget("state") == "normal":
+            self.cancel_event.set()
+        
+        try:
+            parent = psutil.Process(os.getpid())
+            # 首先终止所有子进程
+            for child in parent.children(recursive=True):
+                child.terminate()
+            # 然后终止父进程自己
+            parent.terminate()
+        except psutil.NoSuchProcess:
+            pass
+        finally:
+            # 作为备用方案，确保窗口被销毁
+            self.destroy()
 
     def setup_input_frame(self):
         input_frame = ctk.CTkFrame(self)
@@ -143,7 +164,6 @@ class DownloaderApp(ctk.CTk):
         if directory: self.save_path_var.set(directory)
 
     def log_message(self, message):
-        # 确保消息是字符串，并去掉尾部换行符
         message = str(message).rstrip()
         if message:
             self.log_text.configure(state='normal')
@@ -214,7 +234,6 @@ class DownloaderApp(ctk.CTk):
     def run_download(self, download_type, urls, save_path, quality, cancel_event):
         final_status = "已完成"
         
-        # 重定向 stdout 和 stderr
         queue_logger = QueueLogger(self.log_queue)
         original_stdout = sys.stdout
         original_stderr = sys.stderr
@@ -232,8 +251,6 @@ class DownloaderApp(ctk.CTk):
                 downloader_params['quality'] = quality
             
             downloader = downloader_class(**downloader_params)
-            # 这个重定向不再需要，因为我们捕获了所有stdout/stderr
-            # downloader.print_colored = lambda text, *args, **kwargs: self.log_queue.put(("log", str(text)))
 
             self.log_queue.put(("status", f"开始批量下载 {len(urls)} 个项目..."))
             downloader.batch_download(urls)
@@ -246,7 +263,6 @@ class DownloaderApp(ctk.CTk):
             final_status = f"错误: {e}"
             self.log_queue.put(("log", f"发生严重错误: {e}"))
         finally:
-            # 恢复原始的 stdout 和 stderr
             sys.stdout = original_stdout
             sys.stderr = original_stderr
             
@@ -256,7 +272,6 @@ class DownloaderApp(ctk.CTk):
 
     def progress_hook(self, d):
         if self.cancel_event.is_set():
-            # yt-dlp的旧版本可能需要导入这个
             import yt_dlp
             raise yt_dlp.utils.DownloadError("下载已被用户取消")
 
@@ -272,15 +287,5 @@ class DownloaderApp(ctk.CTk):
                 self.log_queue.put(("status", f"处理中: {d['postprocessor']}..."))
 
 if __name__ == "__main__":
-    # 在GUI模式下，这些检查可以被简化或移除，因为ffmpeg由打包处理
-    # if not os.path.exists("./ffmpeg/bin/ffmpeg.exe") and not shutil.which("ffmpeg"):
-    #     print("警告: 未找到ffmpeg，MP3转换和部分视频下载可能失败。")
-    
-    # try:
-    #     import yt_dlp
-    # except ImportError:
-    #     print("错误: 找不到 yt-dlp 库。请运行 'pip install yt-dlp' 安装。")
-    #     sys.exit(1)
-
     app = DownloaderApp()
     app.mainloop()

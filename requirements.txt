@@ -8,6 +8,7 @@ tqdm>=4.66.0                # 进度条
 requests>=2.31.0            # HTTP请求库
 urllib3>=1.26.0             # URL处理
 customtkinter>=5.2.0        # 现代化UI界面
+psutil>=5.9.0               # 进程管理
 
 # 开发和打包依赖
 pyinstaller>=5.0.0          # 打包成exe

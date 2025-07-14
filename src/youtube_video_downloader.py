@@ -113,6 +113,7 @@ class YouTubeVideoDownloader:
             'writeannotations': False,
             'progress_hooks': self.progress_hooks,
             'verbose': True,
+            'force_ipv4': True,
         }
         
         ffmpeg_location = self.find_ffmpeg()

@@ -80,6 +80,7 @@ class YouTubeToMP3:
             'writeautomaticsub': False,
             'progress_hooks': self.progress_hooks,
             'verbose': True,
+            'force_ipv4': True,
         }
         
         # 检查是否需要指定FFmpeg路径
