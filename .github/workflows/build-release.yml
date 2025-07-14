@@ -1,0 +1,53 @@
+name: Build and Release Windows Executable
+
+# This workflow is triggered when a new tag starting with "v" is pushed.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    # Use a Windows environment to build the .exe
+    runs-on: windows-latest
+
+    steps:
+    # Step 1: Check out the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Step 2: Set up the Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' # You can change this to your preferred Python version
+
+    # Step 3: Install project dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    # Step 4: Build the executable with PyInstaller
+    # Key options:
+    # --onefile: Bundle everything into a single .exe
+    # --windowed: No console window when the user runs it
+    # --add-data "ffmpeg;ffmpeg": Crucial step to include the ffmpeg directory
+    # --name: The desired name for the final executable
+    - name: Build with PyInstaller
+      run: pyinstaller --noconfirm --onefile --windowed --add-data "ffmpeg;ffmpeg" --name "youtube_downloader" gui.py
+
+    # Step 5: Package the build artifact into a zip file for easy download
+    - name: Package release assets
+      run: |
+        $version = "${{ github.ref_name }}" # Get the version from the tag name (e.g., v1.0)
+        $zipName = "youtube_downloader_${version}_windows.zip"
+        Compress-Archive -Path dist/* -DestinationPath $zipName
+        echo "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    # Step 6: Create the GitHub Release and upload the zipped artifact
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ env.ZIP_NAME }} # Attach the zip file created in the previous step

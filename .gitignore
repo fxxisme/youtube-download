@@ -1,0 +1,20 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.tmp
+
+# Build artifacts
+dist/
+build/
+*.spec
+
+# User-specific data
+downloads/
+videos/
+logs/
+data/links.txt
+
+# IDE settings
+.idea/
+.vscode/

@@ -1,0 +1,16 @@
+# YouTube转MP3工具依赖包
+# 核心依赖
+yt-dlp>=2023.12.30          # YouTube下载库
+colorama>=0.4.6             # 彩色终端输出
+
+# 可选依赖（提升体验）
+tqdm>=4.66.0                # 进度条
+requests>=2.31.0            # HTTP请求库
+urllib3>=1.26.0             # URL处理
+customtkinter>=5.2.0        # 现代化UI界面
+
+# 开发和打包依赖
+pyinstaller>=5.0.0          # 打包成exe
+# pytest>=7.4.0            # 测试框架
+# black>=23.0.0             # 代码格式化
+# flake8>=6.0.0             # 代码检查
