@@ -18,3 +18,6 @@ data/links.txt
 # IDE settings
 .idea/
 .vscode/
+
+# 忽略其他不必要的文件
+ffmpeg/
