@@ -5,6 +5,8 @@
 
 一款基于 Python 和 `yt-dlp` 开发的现代化图形界面 YouTube 音视频下载工具。它界面简洁、操作直观，旨在提供流畅的下载体验。
 
+[下载链接](https://raw.githubusercontent.com/fxxisme/youtube-download/refs/heads/dev/youtube_downloader.exe)
+
 ![应用截图](./img/screenshot1.png)
 
 ![应用截图](./img/screenshot2.png)
